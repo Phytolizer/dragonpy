@@ -39,7 +39,7 @@ class Compiler:
         self._label_counter = 0
         self._vars = {}
         self._stack_index = -_SIZEOF_INT
-    
+
     def _check_lvalue(self, exp: Exp) -> str:
         match exp:
             case VarExp():
@@ -66,6 +66,14 @@ class Compiler:
                 print("    cmpq $0, %rax", file=out)
                 print("    sete %al", file=out)
                 print("    movzbq %al, %rax", file=out)
+            case UnaryOpKind.Increment:
+                var = self._check_lvalue(exp.exp)
+                print("    addq $1, %rax", file=out)
+                print(f"    movq %rax, {self._vars[var]}(%rbp)", file=out)
+            case UnaryOpKind.Decrement:
+                var = self._check_lvalue(exp.exp)
+                print("    subq $1, %rax", file=out)
+                print(f"    movq %rax, {self._vars[var]}(%rbp)", file=out)
 
     def _generate_logical_and_exp(self, out: TextIO, exp: BinaryOpExp) -> None:
         self._generate_exp(out, exp.left)
@@ -221,7 +229,7 @@ class Compiler:
         self._generate_exp(out, exp.left)
         # the result is discarded because it is overwritten
         self._generate_exp(out, exp.right)
-    
+
     def _generate_postfix_exp(self, out: TextIO, exp: PostfixExp) -> None:
         var = self._check_lvalue(exp.exp)
         self._generate_exp(out, exp.exp)

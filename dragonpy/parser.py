@@ -144,7 +144,7 @@ class Parser:
 
     def _parse_exp(self) -> Exp:
         return self._parse_comma_exp()
-    
+
     def _parse_comma_exp(self) -> Exp:
         exp = self._parse_assign_exp()
         while self._match(TokenType.Comma):
@@ -254,14 +254,20 @@ class Parser:
             assert op is not None
             exp = BinaryOpExp(op, exp, self._parse_unary())
         return exp
-    
+
     def _parse_unary(self) -> Exp:
-        if tok := self._match(TokenType.Bang, TokenType.Minus, TokenType.Tilde):
+        if tok := self._match(
+            TokenType.Bang,
+            TokenType.Minus,
+            TokenType.Tilde,
+            TokenType.PlusPlus,
+            TokenType.MinusMinus,
+        ):
             op = UnaryOpKind.get(tok)
             assert op is not None
             return UnaryOpExp(op, self._parse_unary())
         return self._parse_postfix()
-    
+
     def _parse_postfix(self) -> Exp:
         exp = self._parse_primary()
         if tok := self._match(TokenType.PlusPlus, TokenType.MinusMinus):

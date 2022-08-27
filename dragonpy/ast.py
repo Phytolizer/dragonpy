@@ -22,6 +22,8 @@ class UnaryOpKind(Enum):
     Negation = auto()
     BitwiseComplement = auto()
     LogicalNegation = auto()
+    Increment = auto()
+    Decrement = auto()
 
     @staticmethod
     def get(tok: Token) -> Optional["UnaryOpKind"]:
@@ -32,6 +34,10 @@ class UnaryOpKind(Enum):
                 return UnaryOpKind.BitwiseComplement
             case TokenType.Bang:
                 return UnaryOpKind.LogicalNegation
+            case TokenType.PlusPlus:
+                return UnaryOpKind.Increment
+            case TokenType.MinusMinus:
+                return UnaryOpKind.Decrement
             case _:
                 return None
 
