@@ -171,6 +171,39 @@ class AssignExp(Exp):
 
 
 @dataclass
+class CommaExp(Exp):
+    left: Exp
+    right: Exp
+
+    def __str__(self) -> str:
+        return f"Comma({self.left}, {self.right})"
+
+
+class PostfixOpKind(Enum):
+    Increment = auto()
+    Decrement = auto()
+
+    @staticmethod
+    def get(tok: Token) -> Optional["PostfixOpKind"]:
+        match tok.type:
+            case TokenType.PlusPlus:
+                return PostfixOpKind.Increment
+            case TokenType.MinusMinus:
+                return PostfixOpKind.Decrement
+            case _:
+                return None
+
+
+@dataclass
+class PostfixExp(Exp):
+    exp: Exp
+    op: PostfixOpKind
+
+    def __str__(self) -> str:
+        return f"Postfix({self.exp}, {self.op})"
+
+
+@dataclass
 class VarExp(Exp):
     name: IdentifierToken
 

@@ -6,11 +6,14 @@ from dragonpy.ast import (
     AssignKind,
     BinaryOpExp,
     BinaryOpKind,
+    CommaExp,
     ConstantExp,
     DeclareStatement,
     Exp,
     ExpStatement,
     Function,
+    PostfixExp,
+    PostfixOpKind,
     Program,
     ReturnStatement,
     Statement,
@@ -36,6 +39,13 @@ class Compiler:
         self._label_counter = 0
         self._vars = {}
         self._stack_index = -_SIZEOF_INT
+    
+    def _check_lvalue(self, exp: Exp) -> str:
+        match exp:
+            case VarExp():
+                return exp.name.value
+            case _:
+                raise CompileError(f"Not an lvalue: {exp}")
 
     def _generate_label(self, template: str) -> str:
         label_name = template.format(self._label_counter)
@@ -207,6 +217,22 @@ class Compiler:
             raise CompileError(f"Variable not declared: {exp.name.value}")
         print(f"    movq {self._vars[exp.name.value]}(%rbp), %rax", file=out)
 
+    def _generate_comma_exp(self, out: TextIO, exp: CommaExp) -> None:
+        self._generate_exp(out, exp.left)
+        # the result is discarded because it is overwritten
+        self._generate_exp(out, exp.right)
+    
+    def _generate_postfix_exp(self, out: TextIO, exp: PostfixExp) -> None:
+        var = self._check_lvalue(exp.exp)
+        self._generate_exp(out, exp.exp)
+        match exp.op:
+            case PostfixOpKind.Increment:
+                print("    addq $1, %rax", file=out)
+                print(f"    movq %rax, {self._vars[var]}(%rbp)", file=out)
+            case PostfixOpKind.Decrement:
+                print("    subq $1, %rax", file=out)
+                print(f"    movq %rax, {self._vars[var]}(%rbp)", file=out)
+
     def _generate_exp(self, out: TextIO, exp: Exp) -> None:
         match exp:
             case UnaryOpExp():
@@ -219,6 +245,10 @@ class Compiler:
                 self._generate_assign_exp(out, exp)
             case VarExp():
                 self._generate_var_exp(out, exp)
+            case CommaExp():
+                self._generate_comma_exp(out, exp)
+            case PostfixExp():
+                self._generate_postfix_exp(out, exp)
             case _:
                 assert False, f"Unknown expression type {type(exp)}"
 

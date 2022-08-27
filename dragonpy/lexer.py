@@ -56,7 +56,11 @@ class Lexer(Iterator):
             case ";":
                 return self._add_token(TokenType.Semicolon)
             case "-":
-                return self._add_token(TokenType.Minus)
+                if self._peek() == "-":
+                    self._advance()
+                    return self._add_token(TokenType.MinusMinus)
+                else:
+                    return self._add_token(TokenType.Minus)
             case "~":
                 return self._add_token(TokenType.Tilde)
             case "!":
@@ -66,11 +70,15 @@ class Lexer(Iterator):
                 else:
                     return self._add_token(TokenType.Bang)
             case "+":
-                if self._peek() == "=":
-                    self._advance()
-                    return self._add_token(TokenType.PlusEqual)
-                else:
-                    return self._add_token(TokenType.Plus)
+                match self._peek():
+                    case "=":
+                        self._advance()
+                        return self._add_token(TokenType.PlusEqual)
+                    case "+":
+                        self._advance()
+                        return self._add_token(TokenType.PlusPlus)
+                    case _:
+                        return self._add_token(TokenType.Plus)
             case "*":
                 if self._peek() == "=":
                     self._advance()
@@ -149,6 +157,8 @@ class Lexer(Iterator):
                     return self._add_token(TokenType.CaretEqual)
                 else:
                     return self._add_token(TokenType.Caret)
+            case ",":
+                return self._add_token(TokenType.Comma)
             case c if c.isalpha():
                 return self._lex_identifier_or_keyword()
             case c if c.isdigit():

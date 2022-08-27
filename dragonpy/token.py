@@ -53,6 +53,9 @@ class TokenType(Enum):
     AmpEqual = auto()
     PipeEqual = auto()
     CaretEqual = auto()
+    Comma = auto()
+    PlusPlus = auto()
+    MinusMinus = auto()
 
 
 @dataclass

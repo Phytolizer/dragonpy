@@ -5,12 +5,15 @@ from dragonpy.ast import (
     AssignKind,
     BinaryOpExp,
     BinaryOpKind,
+    CommaExp,
     ConstantExp,
     DeclareStatement,
     Exp,
     ExpStatement,
     Function,
     Initializer,
+    PostfixExp,
+    PostfixOpKind,
     Program,
     ReturnStatement,
     Statement,
@@ -140,7 +143,13 @@ class Parser:
         return ExpStatement(exp, semicolon)
 
     def _parse_exp(self) -> Exp:
-        return self._parse_assign_exp()
+        return self._parse_comma_exp()
+    
+    def _parse_comma_exp(self) -> Exp:
+        exp = self._parse_assign_exp()
+        while self._match(TokenType.Comma):
+            exp = CommaExp(exp, self._parse_assign_exp())
+        return exp
 
     def _parse_assign_exp(self) -> Exp:
         exp = self._parse_logical_or_exp()
@@ -239,22 +248,33 @@ class Parser:
         return exp
 
     def _parse_term(self) -> Exp:
-        exp = self._parse_factor()
+        exp = self._parse_unary()
         while tok := self._match(TokenType.Star, TokenType.Slash, TokenType.Percent):
             op = BinaryOpKind.get(tok)
             assert op is not None
-            exp = BinaryOpExp(op, exp, self._parse_factor())
+            exp = BinaryOpExp(op, exp, self._parse_unary())
+        return exp
+    
+    def _parse_unary(self) -> Exp:
+        if tok := self._match(TokenType.Bang, TokenType.Minus, TokenType.Tilde):
+            op = UnaryOpKind.get(tok)
+            assert op is not None
+            return UnaryOpExp(op, self._parse_unary())
+        return self._parse_postfix()
+    
+    def _parse_postfix(self) -> Exp:
+        exp = self._parse_primary()
+        if tok := self._match(TokenType.PlusPlus, TokenType.MinusMinus):
+            op = PostfixOpKind.get(tok)
+            assert op is not None
+            return PostfixExp(exp, op)
         return exp
 
-    def _parse_factor(self) -> Exp:
+    def _parse_primary(self) -> Exp:
         if self._match(TokenType.OpenParen):
             exp = self._parse_exp()
             self._expect(TokenType.CloseParen)
             return exp
-        if tok := self._match(TokenType.Minus, TokenType.Tilde, TokenType.Bang):
-            op = UnaryOpKind.get(tok)
-            assert op is not None
-            return UnaryOpExp(op, self._parse_factor())
         if tok := self._match(TokenType.DecimalConstant):
             return ConstantExp(cast(DecimalConstantToken, tok))
         if tok := self._match(TokenType.Identifier):
