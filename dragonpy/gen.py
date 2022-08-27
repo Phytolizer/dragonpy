@@ -30,15 +30,23 @@ class CompileError(RuntimeError):
 _SIZEOF_INT = 8
 
 
+_VarTable = dict[str, int]
+
+
 class Compiler:
     _label_counter: int
-    _vars: dict[str, int]
+    _scopes: list[_VarTable]
+    _scope: int
     _stack_index: int
 
     def __init__(self) -> None:
         self._label_counter = 0
-        self._vars = {}
+        self._scopes = [{}]
+        self._scope = 0
         self._stack_index = -_SIZEOF_INT
+    
+    def _vars(self) -> _VarTable:
+        return self._scopes[self._scope]
 
     def _check_lvalue(self, exp: Exp) -> str:
         match exp:
@@ -69,11 +77,11 @@ class Compiler:
             case UnaryOpKind.Increment:
                 var = self._check_lvalue(exp.exp)
                 print("    addq $1, %rax", file=out)
-                print(f"    movq %rax, {self._vars[var]}(%rbp)", file=out)
+                print(f"    movq %rax, {self._vars()[var]}(%rbp)", file=out)
             case UnaryOpKind.Decrement:
                 var = self._check_lvalue(exp.exp)
                 print("    subq $1, %rax", file=out)
-                print(f"    movq %rax, {self._vars[var]}(%rbp)", file=out)
+                print(f"    movq %rax, {self._vars()[var]}(%rbp)", file=out)
 
     def _generate_logical_and_exp(self, out: TextIO, exp: BinaryOpExp) -> None:
         self._generate_exp(out, exp.left)
@@ -168,62 +176,62 @@ class Compiler:
 
     def _generate_assign_exp(self, out: TextIO, exp: AssignExp) -> None:
         self._generate_exp(out, exp.right)
-        if exp.left.value not in self._vars.keys():
+        if exp.left.value not in self._vars().keys():
             raise CompileError(f"Variable not declared: {exp.left.value}")
         match exp.kind:
             case AssignKind.Simple:
-                print(f"    movq %rax, {self._vars[exp.left.value]}(%rbp)", file=out)
+                print(f"    movq %rax, {self._vars()[exp.left.value]}(%rbp)", file=out)
             case AssignKind.Add:
-                print(f"    movq {self._vars[exp.left.value]}(%rbp), %rdi", file=out)
+                print(f"    movq {self._vars()[exp.left.value]}(%rbp), %rdi", file=out)
                 print("    addq %rax, %rdi", file=out)
-                print(f"    movq %rdi, {self._vars[exp.left.value]}(%rbp)", file=out)
+                print(f"    movq %rdi, {self._vars()[exp.left.value]}(%rbp)", file=out)
             case AssignKind.Subtract:
-                print(f"    movq {self._vars[exp.left.value]}(%rbp), %rdi", file=out)
+                print(f"    movq {self._vars()[exp.left.value]}(%rbp), %rdi", file=out)
                 print("    subq %rax, %rdi", file=out)
-                print(f"    movq %rdi, {self._vars[exp.left.value]}(%rbp)", file=out)
+                print(f"    movq %rdi, {self._vars()[exp.left.value]}(%rbp)", file=out)
             case AssignKind.Multiply:
-                print(f"    movq {self._vars[exp.left.value]}(%rbp), %rdi", file=out)
+                print(f"    movq {self._vars()[exp.left.value]}(%rbp), %rdi", file=out)
                 print("    imulq %rax, %rdi", file=out)
-                print(f"    movq %rdi, {self._vars[exp.left.value]}(%rbp)", file=out)
+                print(f"    movq %rdi, {self._vars()[exp.left.value]}(%rbp)", file=out)
             case AssignKind.Divide:
-                print(f"    movq {self._vars[exp.left.value]}(%rbp), %rdi", file=out)
+                print(f"    movq {self._vars()[exp.left.value]}(%rbp), %rdi", file=out)
                 print("    xchg %rax, %rdi", file=out)
                 print("    cqto", file=out)
                 print("    idivq %rdi", file=out)
-                print(f"    movq %rax, {self._vars[exp.left.value]}(%rbp)", file=out)
+                print(f"    movq %rax, {self._vars()[exp.left.value]}(%rbp)", file=out)
             case AssignKind.Modulo:
-                print(f"    movq {self._vars[exp.left.value]}(%rbp), %rdi", file=out)
+                print(f"    movq {self._vars()[exp.left.value]}(%rbp), %rdi", file=out)
                 print("    xchg %rax, %rdi", file=out)
                 print("    cqto", file=out)
                 print("    idivq %rdi", file=out)
-                print(f"    movq %rdx, {self._vars[exp.left.value]}(%rbp)", file=out)
+                print(f"    movq %rdx, {self._vars()[exp.left.value]}(%rbp)", file=out)
             case AssignKind.BitwiseAnd:
-                print(f"    movq {self._vars[exp.left.value]}(%rbp), %rdi", file=out)
+                print(f"    movq {self._vars()[exp.left.value]}(%rbp), %rdi", file=out)
                 print("    andq %rax, %rdi", file=out)
-                print(f"    movq %rdi, {self._vars[exp.left.value]}(%rbp)", file=out)
+                print(f"    movq %rdi, {self._vars()[exp.left.value]}(%rbp)", file=out)
             case AssignKind.BitwiseOr:
-                print(f"    movq {self._vars[exp.left.value]}(%rbp), %rdi", file=out)
+                print(f"    movq {self._vars()[exp.left.value]}(%rbp), %rdi", file=out)
                 print("    orq %rax, %rdi", file=out)
-                print(f"    movq %rdi, {self._vars[exp.left.value]}(%rbp)", file=out)
+                print(f"    movq %rdi, {self._vars()[exp.left.value]}(%rbp)", file=out)
             case AssignKind.BitwiseXor:
-                print(f"    movq {self._vars[exp.left.value]}(%rbp), %rdi", file=out)
+                print(f"    movq {self._vars()[exp.left.value]}(%rbp), %rdi", file=out)
                 print("    xorq %rax, %rdi", file=out)
-                print(f"    movq %rdi, {self._vars[exp.left.value]}(%rbp)", file=out)
+                print(f"    movq %rdi, {self._vars()[exp.left.value]}(%rbp)", file=out)
             case AssignKind.BitwiseLeftShift:
-                print(f"    movq {self._vars[exp.left.value]}(%rbp), %rdi", file=out)
+                print(f"    movq {self._vars()[exp.left.value]}(%rbp), %rdi", file=out)
                 print("    movq %rax, %rcx", file=out)
                 print("    salq %cl, %rdi", file=out)
-                print(f"    movq %rdi, {self._vars[exp.left.value]}(%rbp)", file=out)
+                print(f"    movq %rdi, {self._vars()[exp.left.value]}(%rbp)", file=out)
             case AssignKind.BitwiseRightShift:
-                print(f"    movq {self._vars[exp.left.value]}(%rbp), %rdi", file=out)
+                print(f"    movq {self._vars()[exp.left.value]}(%rbp), %rdi", file=out)
                 print("    movq %rax, %rcx", file=out)
                 print("    sarq %cl, %rdi", file=out)
-                print(f"    movq %rdi, {self._vars[exp.left.value]}(%rbp)", file=out)
+                print(f"    movq %rdi, {self._vars()[exp.left.value]}(%rbp)", file=out)
 
     def _generate_var_exp(self, out: TextIO, exp: VarExp) -> None:
-        if exp.name.value not in self._vars.keys():
+        if exp.name.value not in self._vars().keys():
             raise CompileError(f"Variable not declared: {exp.name.value}")
-        print(f"    movq {self._vars[exp.name.value]}(%rbp), %rax", file=out)
+        print(f"    movq {self._vars()[exp.name.value]}(%rbp), %rax", file=out)
 
     def _generate_comma_exp(self, out: TextIO, exp: CommaExp) -> None:
         self._generate_exp(out, exp.left)
@@ -236,10 +244,10 @@ class Compiler:
         match exp.op:
             case PostfixOpKind.Increment:
                 print("    addq $1, %rax", file=out)
-                print(f"    movq %rax, {self._vars[var]}(%rbp)", file=out)
+                print(f"    movq %rax, {self._vars()[var]}(%rbp)", file=out)
             case PostfixOpKind.Decrement:
                 print("    subq $1, %rax", file=out)
-                print(f"    movq %rax, {self._vars[var]}(%rbp)", file=out)
+                print(f"    movq %rax, {self._vars()[var]}(%rbp)", file=out)
 
     def _generate_exp(self, out: TextIO, exp: Exp) -> None:
         match exp:
@@ -274,7 +282,7 @@ class Compiler:
     def _generate_declare_statement(
         self, out: TextIO, statement: DeclareStatement
     ) -> None:
-        if statement.identifier.value in self._vars.keys():
+        if statement.identifier.value in self._vars().keys():
             raise CompileError(
                 f"Variable {statement.identifier.value} already declared"
             )
@@ -283,7 +291,7 @@ class Compiler:
         else:
             print("    movq $0, %rax", file=out)
         print("    pushq %rax", file=out)
-        self._vars[statement.identifier.value] = self._stack_index
+        self._vars()[statement.identifier.value] = self._stack_index
         self._stack_index -= _SIZEOF_INT
 
     def _generate_statement(self, out: TextIO, statement: Statement) -> None:
