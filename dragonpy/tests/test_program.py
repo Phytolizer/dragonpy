@@ -58,9 +58,8 @@ def generate_invalid_program_test(filepath: PurePath) -> TestFunc:
             except:
                 pass
             assert not Path(dir / "dragonpy.out").exists()
-    
+
     return test
-            
 
 
 def generate_invalid_program_tests(

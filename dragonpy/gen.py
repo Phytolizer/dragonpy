@@ -1,5 +1,5 @@
 from io import StringIO
-from typing import TextIO, Optional
+from typing import Optional, TextIO
 
 from dragonpy.ast import (
     AssignExp,
@@ -44,13 +44,13 @@ class Compiler:
         self._scopes = [{}]
         self._scope = 0
         self._stack_index = -_SIZEOF_INT
-    
+
     def _vars(self) -> _VarTable:
         return self._scopes[self._scope]
 
     def _put_var(self, name: str, offset: int) -> None:
         self._vars()[name] = offset
-    
+
     def _get_var(self, name: str, scope: Optional[int] = None) -> int:
         if scope is None:
             scope = self._scope
