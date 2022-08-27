@@ -83,7 +83,7 @@ class Parser:
         tok = self._peek(1)
         if tok is None:
             return None
-        if not tok.type in types:
+        if tok.type not in types:
             return None
         self._advance()
         return tok
@@ -93,7 +93,8 @@ class Parser:
         end_of_file = self._advance()
         if end_of_file is not None:
             raise ParseError(
-                f"{end_of_file.pos}: Unexpected token {end_of_file.type} (expected end of file)"
+                f"{end_of_file.pos}: Unexpected token {end_of_file.type}"
+                + " (expected end of file)"
             )
         return Program(function)
 

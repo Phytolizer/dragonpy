@@ -23,7 +23,7 @@ def generate_valid_program_test(filepath: PurePath) -> TestFunc:
             dir = PurePath(dir)
             try:
                 dragonpy.run(["--output", str(dir / "dragonpy.out"), str(filepath)])
-            except:
+            except Exception:
                 if skip_on_failure:
                     pytest.skip("Test skipped on failure")
                 else:
@@ -55,7 +55,7 @@ def generate_invalid_program_test(filepath: PurePath) -> TestFunc:
             dir = PurePath(dir)
             try:
                 dragonpy.run(["--output", str(dir / "dragonpy.out"), str(filepath)])
-            except:
+            except Exception:
                 pass
             assert not Path(dir / "dragonpy.out").exists()
 
