@@ -6,6 +6,7 @@ from dragonpy.ast import (
     AssignKind,
     BinaryOpExp,
     BinaryOpKind,
+    BlockStatement,
     CommaExp,
     ConditionalExp,
     ConstantExp,
@@ -60,7 +61,18 @@ class Compiler:
             if scope == 0:
                 raise CompileError(f"Variable not declared: {name}")
             return self._get_var(name, scope - 1)
-        return self._vars()[name]
+        return self._scopes[scope][name]
+    
+    def _push_scope(self) -> None:
+        self._scopes.append({})
+        self._scope += 1
+    
+    def _pop_scope(self, out: TextIO) -> None:
+        bytes_to_dealloc = len(self._vars()) * _SIZEOF_INT
+        print(f"    addq ${bytes_to_dealloc}, %rsp", file=out)
+        self._stack_index += bytes_to_dealloc
+        self._scopes.pop()
+        self._scope -= 1
 
     def _check_lvalue(self, exp: Exp) -> str:
         match exp:
@@ -332,6 +344,12 @@ class Compiler:
         if statement.else_statement:
             self._generate_statement(out, statement.else_statement)
         print(f"{end_label}:", file=out)
+    
+    def _generate_block_statement(self, out: TextIO, statement: BlockStatement) -> None:
+        self._push_scope()
+        for stmt in statement.statements:
+            self._generate_statement(out, stmt)
+        self._pop_scope(out)
 
     def _generate_statement(self, out: TextIO, statement: Statement) -> None:
         match statement:
@@ -343,6 +361,8 @@ class Compiler:
                 self._generate_declare_statement(out, statement)
             case IfStatement():
                 self._generate_if_statement(out, statement)
+            case BlockStatement():
+                self._generate_block_statement(out, statement)
             case _:
                 assert False, f"Unknown statement type {type(statement)}"
 

@@ -5,6 +5,7 @@ from dragonpy.ast import (
     AssignKind,
     BinaryOpExp,
     BinaryOpKind,
+    BlockStatement,
     CommaExp,
     ConditionalExp,
     ConstantExp,
@@ -130,8 +131,21 @@ class Parser:
                 return self._parse_return_statement()
             case Token(type=TokenType.KwIf):
                 return self._parse_if_statement()
+            case Token(type=TokenType.OpenBrace):
+                return self._parse_block_statement()
             case _:
                 return self._parse_exp_statement()
+
+    def _parse_block_statement(self) -> Statement:
+        open_brace = self._expect(TokenType.OpenBrace)
+        statements: list[Statement] = []
+        while True:
+            if self._look(TokenType.CloseBrace):
+                break
+            statement = self._parse_block_item()
+            statements.append(statement)
+        close_brace = self._expect(TokenType.CloseBrace)
+        return BlockStatement(open_brace, statements, close_brace)
 
     def _parse_return_statement(self) -> Statement:
         return_kw = self._expect(TokenType.KwReturn)

@@ -287,10 +287,27 @@ class IfStatement(Statement):
     def __str__(self) -> str:
         out = StringIO()
         print(f"IF {self.condition} THEN", file=out)
+        out.write(" " * 12)
         out.write(str(self.then_statement))
         if self.else_statement is not None:
             print("ELSE", file=out)
             out.write(str(self.else_statement))
+        out.seek(0)
+        return out.read()
+
+
+@dataclass
+class BlockStatement(Statement):
+    lbrace: Token
+    statements: list[Statement]
+    rbrace: Token
+
+    def __str__(self) -> str:
+        out = StringIO()
+        print("    BEGIN", file=out)
+        for stmt in self.statements:
+            print(str(stmt), file=out)
+        print("    END", file=out)
         out.seek(0)
         return out.read()
 

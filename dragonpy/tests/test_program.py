@@ -9,7 +9,7 @@ import pytest
 
 import dragonpy
 
-_NUM_STAGES = 6
+_NUM_STAGES = 7
 _CURDIR = PurePath(__file__).parent
 
 
