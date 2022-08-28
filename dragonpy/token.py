@@ -15,6 +15,8 @@ class SourcePos:
 class TokenType(Enum):
     KwInt = auto()
     KwReturn = auto()
+    KwIf = auto()
+    KwElse = auto()
     Identifier = auto()
     OpenParen = auto()
     CloseParen = auto()
@@ -56,6 +58,8 @@ class TokenType(Enum):
     Comma = auto()
     PlusPlus = auto()
     MinusMinus = auto()
+    Colon = auto()
+    Question = auto()
 
 
 @dataclass

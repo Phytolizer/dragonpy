@@ -6,11 +6,13 @@ from dragonpy.ast import (
     BinaryOpExp,
     BinaryOpKind,
     CommaExp,
+    ConditionalExp,
     ConstantExp,
     DeclareStatement,
     Exp,
     ExpStatement,
     Function,
+    IfStatement,
     Initializer,
     PostfixExp,
     PostfixOpKind,
@@ -108,19 +110,28 @@ class Parser:
         while True:
             if self._look(TokenType.CloseBrace):
                 break
-            statement = self._parse_statement()
+            statement = self._parse_block_item()
             statements.append(statement)
         close_brace = self._expect(TokenType.CloseBrace)
         return Function(
             int_kw, id, open_paren, close_paren, open_brace, statements, close_brace
         )
+    
+    def _parse_block_item(self) -> Statement:
+        match self._peek(1):
+            case Token(type=TokenType.KwInt):
+                return self._parse_declare_statement()
+            case _:
+                return self._parse_statement()
 
     def _parse_statement(self) -> Statement:
-        if self._look(TokenType.KwReturn):
-            return self._parse_return_statement()
-        if self._look(TokenType.KwInt):
-            return self._parse_declare_statement()
-        return self._parse_exp_statement()
+        match self._peek(1):
+            case Token(type=TokenType.KwReturn):
+                return self._parse_return_statement()
+            case Token(type=TokenType.KwIf):
+                return self._parse_if_statement()
+            case _:
+                return self._parse_exp_statement()
 
     def _parse_return_statement(self) -> Statement:
         return_kw = self._expect(TokenType.KwReturn)
@@ -138,6 +149,19 @@ class Parser:
         semicolon = self._expect(TokenType.Semicolon)
         return DeclareStatement(int_kw, id, initializer, semicolon)
 
+    def _parse_if_statement(self) -> Statement:
+        if_kw = self._expect(TokenType.KwIf)
+        open_paren = self._expect(TokenType.OpenParen)
+        exp = self._parse_exp()
+        close_paren = self._expect(TokenType.CloseParen)
+        then_statement = self._parse_statement()
+        else_statement: Optional[Statement] = None
+        if self._match(TokenType.KwElse):
+            else_statement = self._parse_statement()
+        return IfStatement(
+            if_kw, open_paren, exp, close_paren, then_statement, else_statement
+        )
+
     def _parse_exp_statement(self) -> Statement:
         exp = self._parse_exp()
         semicolon = self._expect(TokenType.Semicolon)
@@ -153,7 +177,7 @@ class Parser:
         return exp
 
     def _parse_assign_exp(self) -> Exp:
-        exp = self._parse_logical_or_exp()
+        exp = self._parse_conditional_exp()
         if tok := self._match(
             TokenType.Equal,
             TokenType.PlusEqual,
@@ -173,6 +197,15 @@ class Parser:
                 )
             kind = AssignKind.get(tok)
             exp = AssignExp(exp.name, kind, self._parse_assign_exp())
+        return exp
+    
+    def _parse_conditional_exp(self) -> Exp:
+        exp = self._parse_logical_or_exp()
+        if self._match(TokenType.Question):
+            true_exp = self._parse_exp()
+            self._expect(TokenType.Colon)
+            false_exp = self._parse_conditional_exp()
+            exp = ConditionalExp(exp, true_exp, false_exp)
         return exp
 
     def _parse_logical_or_exp(self) -> Exp:

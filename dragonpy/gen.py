@@ -7,11 +7,13 @@ from dragonpy.ast import (
     BinaryOpExp,
     BinaryOpKind,
     CommaExp,
+    ConditionalExp,
     ConstantExp,
     DeclareStatement,
     Exp,
     ExpStatement,
     Function,
+    IfStatement,
     PostfixExp,
     PostfixOpKind,
     Program,
@@ -258,6 +260,18 @@ class Compiler:
             case PostfixOpKind.Decrement:
                 print("    subq $1, %rax", file=out)
                 print(f"    movq %rax, {self._get_var(var)}(%rbp)", file=out)
+    
+    def _generate_conditional_exp(self, out: TextIO, exp: ConditionalExp) -> None:
+        self._generate_exp(out, exp.cond)
+        print("    cmpq $0, %rax", file=out)
+        false_label = self._generate_label(".Lfalse{}")
+        print(f"    je {false_label}", file=out)
+        self._generate_exp(out, exp.true_exp)
+        end_label = self._generate_label(".Lend{}")
+        print(f"    jmp {end_label}", file=out)
+        print(f"{false_label}:", file=out)
+        self._generate_exp(out, exp.false_exp)
+        print(f"{end_label}:", file=out)
 
     def _generate_exp(self, out: TextIO, exp: Exp) -> None:
         match exp:
@@ -275,6 +289,8 @@ class Compiler:
                 self._generate_comma_exp(out, exp)
             case PostfixExp():
                 self._generate_postfix_exp(out, exp)
+            case ConditionalExp():
+                self._generate_conditional_exp(out, exp)
             case _:
                 assert False, f"Unknown expression type {type(exp)}"
 
@@ -303,6 +319,19 @@ class Compiler:
         print("    pushq %rax", file=out)
         self._put_var(statement.identifier.value, self._stack_index)
         self._stack_index -= _SIZEOF_INT
+    
+    def _generate_if_statement(self, out: TextIO, statement: IfStatement) -> None:
+        self._generate_exp(out, statement.condition)
+        print("    cmpq $0, %rax", file=out)
+        false_label = self._generate_label(".Lfalse{}")
+        print(f"    je {false_label}", file=out)
+        self._generate_statement(out, statement.then_statement)
+        end_label = self._generate_label(".Lend{}")
+        print(f"    jmp {end_label}", file=out)
+        print(f"{false_label}:", file=out)
+        if statement.else_statement:
+            self._generate_statement(out, statement.else_statement)
+        print(f"{end_label}:", file=out)
 
     def _generate_statement(self, out: TextIO, statement: Statement) -> None:
         match statement:
@@ -312,6 +341,8 @@ class Compiler:
                 self._generate_exp_statement(out, statement)
             case DeclareStatement():
                 self._generate_declare_statement(out, statement)
+            case IfStatement():
+                self._generate_if_statement(out, statement)
             case _:
                 assert False, f"Unknown statement type {type(statement)}"
 

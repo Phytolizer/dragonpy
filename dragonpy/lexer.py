@@ -11,6 +11,8 @@ from dragonpy.token import (
 _KEYWORDS = {
     "int": TokenType.KwInt,
     "return": TokenType.KwReturn,
+    "if": TokenType.KwIf,
+    "else": TokenType.KwElse,
 }
 
 
@@ -159,6 +161,10 @@ class Lexer(Iterator):
                     return self._add_token(TokenType.Caret)
             case ",":
                 return self._add_token(TokenType.Comma)
+            case "?":
+                return self._add_token(TokenType.Question)
+            case ":":
+                return self._add_token(TokenType.Colon)
             case c if c.isalpha():
                 return self._lex_identifier_or_keyword()
             case c if c.isdigit():

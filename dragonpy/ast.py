@@ -210,6 +210,16 @@ class PostfixExp(Exp):
 
 
 @dataclass
+class ConditionalExp(Exp):
+    cond: Exp
+    true_exp: Exp
+    false_exp: Exp
+
+    def __str__(self) -> str:
+        return f"Cond({self.cond}, {self.true_exp}, {self.false_exp})"
+
+
+@dataclass
 class VarExp(Exp):
     name: IdentifierToken
 
@@ -263,6 +273,26 @@ class ExpStatement(Statement):
 
     def __str__(self) -> str:
         return f"EXP {self.exp}"
+
+
+@dataclass
+class IfStatement(Statement):
+    if_kw: Token
+    lparen: Token
+    condition: Exp
+    rparen: Token
+    then_statement: Statement
+    else_statement: Optional[Statement]
+
+    def __str__(self) -> str:
+        out = StringIO()
+        print(f"IF {self.condition} THEN", file=out)
+        out.write(str(self.then_statement))
+        if self.else_statement is not None:
+            print("ELSE", file=out)
+            out.write(str(self.else_statement))
+        out.seek(0)
+        return out.read()
 
 
 @dataclass
