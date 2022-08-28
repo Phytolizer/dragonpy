@@ -116,7 +116,7 @@ class Parser:
         return Function(
             int_kw, id, open_paren, close_paren, open_brace, statements, close_brace
         )
-    
+
     def _parse_block_item(self) -> Statement:
         match self._peek(1):
             case Token(type=TokenType.KwInt):
@@ -198,7 +198,7 @@ class Parser:
             kind = AssignKind.get(tok)
             exp = AssignExp(exp.name, kind, self._parse_assign_exp())
         return exp
-    
+
     def _parse_conditional_exp(self) -> Exp:
         exp = self._parse_logical_or_exp()
         if self._match(TokenType.Question):

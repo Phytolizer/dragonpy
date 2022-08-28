@@ -260,7 +260,7 @@ class Compiler:
             case PostfixOpKind.Decrement:
                 print("    subq $1, %rax", file=out)
                 print(f"    movq %rax, {self._get_var(var)}(%rbp)", file=out)
-    
+
     def _generate_conditional_exp(self, out: TextIO, exp: ConditionalExp) -> None:
         self._generate_exp(out, exp.cond)
         print("    cmpq $0, %rax", file=out)
@@ -319,7 +319,7 @@ class Compiler:
         print("    pushq %rax", file=out)
         self._put_var(statement.identifier.value, self._stack_index)
         self._stack_index -= _SIZEOF_INT
-    
+
     def _generate_if_statement(self, out: TextIO, statement: IfStatement) -> None:
         self._generate_exp(out, statement.condition)
         print("    cmpq $0, %rax", file=out)
