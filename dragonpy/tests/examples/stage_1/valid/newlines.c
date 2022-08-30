@@ -1,7 +1,7 @@
 
-int 
+int
 main
-(   
+(
 )
 {
 return

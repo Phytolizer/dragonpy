@@ -13,6 +13,11 @@ _KEYWORDS = {
     "return": TokenType.KwReturn,
     "if": TokenType.KwIf,
     "else": TokenType.KwElse,
+    "for": TokenType.KwFor,
+    "while": TokenType.KwWhile,
+    "do": TokenType.KwDo,
+    "break": TokenType.KwBreak,
+    "continue": TokenType.KwContinue,
 }
 
 

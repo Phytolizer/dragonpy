@@ -62,11 +62,11 @@ class Compiler:
                 raise CompileError(f"Variable not declared: {name}")
             return self._get_var(name, scope - 1)
         return self._scopes[scope][name]
-    
+
     def _push_scope(self) -> None:
         self._scopes.append({})
         self._scope += 1
-    
+
     def _pop_scope(self, out: TextIO) -> None:
         bytes_to_dealloc = len(self._vars()) * _SIZEOF_INT
         print(f"    addq ${bytes_to_dealloc}, %rsp", file=out)
@@ -344,7 +344,7 @@ class Compiler:
         if statement.else_statement:
             self._generate_statement(out, statement.else_statement)
         print(f"{end_label}:", file=out)
-    
+
     def _generate_block_statement(self, out: TextIO, statement: BlockStatement) -> None:
         self._push_scope()
         for stmt in statement.statements:
