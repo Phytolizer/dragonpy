@@ -4,6 +4,7 @@ from tempfile import TemporaryDirectory
 from typing import Optional
 
 import click
+import rich
 from pydantic import BaseModel
 
 from dragon.compiler import Compiler
@@ -21,7 +22,7 @@ class Main(BaseModel):
             parser = Parser(source=f.read(), filename=self.file)
             program = parser.parse()
             if self.dump_ast:
-                print(program.json(indent=2))
+                rich.print_json(program.json(indent=2))
                 return
 
             asm = Compiler().compile(program)

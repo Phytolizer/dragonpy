@@ -5,7 +5,6 @@ from pydantic import BaseModel
 
 from dragon.ast import Expression, Function, Program, Statement
 
-
 _ASM_HEADER = """
     section .text
     global _start
