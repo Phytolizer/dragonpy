@@ -1,6 +1,7 @@
 import subprocess
 from pathlib import PurePath
 from tempfile import TemporaryDirectory
+from typing import Optional
 
 import click
 from pydantic import BaseModel
@@ -13,7 +14,7 @@ class Main(BaseModel):
     file: str
     dump_ast: bool
     assembly: bool
-    output: str
+    output: Optional[str]
 
     def run(self):
         with open(self.file, "r") as f:
@@ -25,6 +26,8 @@ class Main(BaseModel):
 
             asm = Compiler().compile(program)
             if self.assembly:
+                if self.output is None:
+                    self.output = "a.s"
                 with open(self.output, "w") as o:
                     o.write(asm)
                 return
@@ -33,6 +36,8 @@ class Main(BaseModel):
                 with open(PurePath(td) / "a.s", "w") as o:
                     o.write(asm)
                 subprocess.run(["nasm", "-f", "elf64", "a.s"], cwd=td, check=True)
+                if self.output is None:
+                    self.output = "a.out"
                 subprocess.run(
                     ["ld", "-o", self.output, PurePath(td) / "a.o"], check=True
                 )
@@ -44,5 +49,5 @@ class Main(BaseModel):
 @click.option("--dump-ast", is_flag=True, help="Dump the AST")
 @click.option("-S", "--assembly", is_flag=True, help="Output assembly")
 @click.option("-o", "--output", type=click.Path(dir_okay=False), help="Output file")
-def main(file: str, dump_ast: bool, assembly: bool, output: str) -> None:
+def main(file: str, dump_ast: bool, assembly: bool, output: Optional[str]) -> None:
     Main(file=file, dump_ast=dump_ast, assembly=assembly, output=output).run()
